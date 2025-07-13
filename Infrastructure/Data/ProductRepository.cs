@@ -6,26 +6,20 @@ namespace Infrastructure.Data;
 
 public class ProductRepository(StoreContext context) : IProductRepository
 {
-    public async Task<IReadOnlyList<Product>> GetProductsAsync(string? brand, string? type, string sort)
+    public async Task<IReadOnlyList<Product>> GetProductsAsync(string? brand, string? type, string? sort)
     {
         var query = context.Products.AsQueryable();
-        if(!string.IsNullOrWhiteSpace(brand))
-        {
-            query = query.Where(p => p.Brand == brand);
-        }
-        if(!string.IsNullOrWhiteSpace(type))
-        {
-            query = query.Where(p => p.Type == type);
-        }
+        if (!string.IsNullOrWhiteSpace(brand)) query = query.Where(p => p.Brand == brand);
+        if (!string.IsNullOrWhiteSpace(type)) query = query.Where(p => p.Type == type);
 
 
         query = sort switch
         {
             "priceAsc" => query.OrderBy(p => p.Price),
             "priceDesc" => query.OrderByDescending(p => p.Price),
-            _ => query.OrderBy( p  => p.Name)
+            _ => query.OrderBy(p => p.Name)
         };
-        
+
         return await query.ToListAsync();
     }
 
