@@ -1,4 +1,5 @@
 #nullable enable
+using API.RequestsHelpers;
 using Core.Entities;
 using Core.Interfaces;
 using Core.Specification;
@@ -8,14 +9,14 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(IGenericRepository<Product> repo) : ControllerBase
+public class ProductsController(IGenericRepository<Product> repo) : BaseApiController
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<Product>>> GetProducts(string? brand, string? type, string sort)
+    public async Task<ActionResult<IReadOnlyList<Product>>> GetProducts([FromQuery] ProductSpecParams specParams)
     {
-        var spec = new ProductSpecification(brand, type, sort);
-        var products = await repo.ListAsync(spec);
-        return Ok(products);
+        var spec = new ProductSpecification(specParams);
+        
+        return await CreatePagedResult(repo, spec, specParams.PageIndex, specParams.PageSize);
     }
 
     [HttpGet("{id:int}")]
@@ -24,7 +25,7 @@ public class ProductsController(IGenericRepository<Product> repo) : ControllerBa
         var product = await repo.GetByIdAsync(id);
         if (product == null) return NotFound();
 
-        return product;
+        return product; 
     }
 
     [HttpPost]
