@@ -23,7 +23,7 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseCors(x => x.AllowAnyMethod().AllowAnyHeader().WithOrigins("http://localhost:4200", "https://localhost:4200")); 
 app.MapControllers();
-
+ 
 try
 {
     using var scope = app.Services.CreateScope();
