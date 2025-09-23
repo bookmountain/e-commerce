@@ -1,6 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ShopService } from '../../core/services/shop.service';
-import { Product } from '../../shared/models/products';
+import { Product } from '../../shared/models/product';
 import { MatMenu, MatMenuTrigger } from '@angular/material/menu';
 import {
   MatListOption,

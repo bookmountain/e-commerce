@@ -3,11 +3,12 @@ import { MatBadge } from '@angular/material/badge';
 import { MatButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { NgOptimizedImage } from '@angular/common';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [MatIcon, MatButton, MatBadge],
+  imports: [MatIcon, MatButton, MatBadge, RouterLink, RouterLinkActive],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
 })
