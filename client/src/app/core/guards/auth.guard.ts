@@ -12,9 +12,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   } else {
     return accountService.getAuthState().pipe(
       map((auth) => {
-        console.log(auth);
         if (auth.isAuthenticated) {
-          console.log('Authenticated via guard');
           return true;
         } else {
           router.navigate(['/account/login'], {
