@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Cart, CartItem } from '../../shared/models/cart';
 import { Product } from '../../shared/models/product';
 import { map } from 'rxjs';
+import { DeliveryMethod } from '../../shared/models/deliveryMethod';
 
 @Injectable({
   providedIn: 'root',
@@ -12,25 +13,30 @@ export class CartService {
   baseUrl = environment.apiUrl;
   private http = inject(HttpClient);
   cart = signal<Cart | null>(null);
-  itemCount = computed(
-    () =>
-      this.cart()?.items.reduce((count, item) => count + item.quantity, 0) ?? 0,
-  );
+  itemCount = computed(() => {
+    return this.cart()?.items.reduce((sum, item) => sum + item.quantity, 0);
+  });
+  selectedDelivery = signal<DeliveryMethod | null>(null);
   totals = computed(() => {
     const cart = this.cart();
+    const delivery = this.selectedDelivery();
     if (!cart) return null;
     const subtotal = cart.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
-    const shipping = subtotal > 10000 ? 0 : 500;
+    const shipping = delivery ? delivery.price : 0;
     const discount = 0;
-    const total = subtotal + shipping - discount;
-    return { subtotal, shipping, total, discount };
+    return {
+      subtotal,
+      shipping,
+      discount,
+      total: subtotal + shipping - discount,
+    };
   });
 
   getCart(id: string) {
-    return this.http.get<Cart>(`${this.baseUrl}/cart?id=${id}`).pipe(
+    return this.http.get<Cart>(this.baseUrl + '/cart?id=' + id).pipe(
       map((cart) => {
         this.cart.set(cart);
         return cart;
@@ -39,9 +45,9 @@ export class CartService {
   }
 
   setCart(cart: Cart) {
-    return this.http
-      .post<Cart>(`${this.baseUrl}/cart`, cart)
-      .subscribe({ next: (cart) => this.cart.set(cart) });
+    return this.http.post<Cart>(this.baseUrl + '/cart', cart).subscribe({
+      next: (cart) => this.cart.set(cart),
+    });
   }
 
   addItemToCart(item: CartItem | Product, quantity = 1) {
@@ -70,24 +76,14 @@ export class CartService {
       }
     }
   }
-  private createCart(): Cart {
-    const cart = new Cart();
-    localStorage.setItem('cart_id', cart.id);
 
-    return cart;
-  }
-
-  private isProduct(item: CartItem | Product): item is Product {
-    return (item as Product).id !== undefined;
-  }
-
-  private mapProductToCartItem(item: Product): CartItem {
-    return {
-      productId: item.id,
-      productName: item.name,
-      quantity: 0,
-      ...item,
-    };
+  deleteCart() {
+    this.http.delete(this.baseUrl + '/cart?id=' + this.cart()?.id).subscribe({
+      next: () => {
+        localStorage.removeItem('cart_id');
+        this.cart.set(null);
+      },
+    });
   }
 
   private addOrUpdateItem(
@@ -102,16 +98,28 @@ export class CartService {
     } else {
       items[index].quantity += quantity;
     }
-
     return items;
   }
 
-  private deleteCart() {
-    this.http.delete(`${this.baseUrl}/cart?id=${this.cart()?.id}`).subscribe({
-      next: () => {
-        this.cart.set(null);
-        localStorage.removeItem('cart_id');
-      },
-    });
+  private mapProductToCartItem(item: Product): CartItem {
+    return {
+      productId: item.id,
+      productName: item.name,
+      price: item.price,
+      quantity: 0,
+      pictureUrl: item.pictureUrl,
+      brand: item.brand,
+      type: item.type,
+    };
+  }
+
+  private isProduct(item: CartItem | Product): item is Product {
+    return (item as Product).id !== undefined;
+  }
+
+  private createCart(): Cart {
+    const cart = new Cart();
+    localStorage.setItem('cart_id', cart.id);
+    return cart;
   }
 }
