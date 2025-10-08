@@ -47,7 +47,7 @@ public class AccountController(SignInManager<AppUser> signInManager) : BaseApiCo
             user.FirstName,
             user.LastName,
             user.Email,
-            AddressDto = user.Address?.ToDto()
+            Address = user.Address?.ToDto()
         });
     }
 
@@ -59,9 +59,10 @@ public class AccountController(SignInManager<AppUser> signInManager) : BaseApiCo
 
     [Authorize]
     [HttpPost("address")]
-    public async Task<ActionResult<AddressDto>> CreateOrUpdateAddress(AddressDto addressDto)
+    public async Task<ActionResult<Address>> CreateOrUpdateAddress(AddressDto addressDto)
     {
         var user = await signInManager.UserManager.GetUserByEmailWithAddress(User);
+
         if (user.Address == null)
             user.Address = addressDto.ToEntity();
         else
@@ -69,8 +70,8 @@ public class AccountController(SignInManager<AppUser> signInManager) : BaseApiCo
 
         var result = await signInManager.UserManager.UpdateAsync(user);
 
-        if (result.Succeeded) return Ok(user.Address.ToDto());
+        if (!result.Succeeded) return BadRequest("Problem updating user address");
 
-        return BadRequest("Problem updating the user");
+        return Ok(user.Address.ToDto());
     }
 }
