@@ -25,6 +25,8 @@ import { CheckoutReviewComponent } from './checkout-review/checkout-review.compo
 import { CartService } from '../../core/services/cart.service';
 import { CurrencyPipe } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { OrderToCreate, ShippingAddress } from '../../shared/models/order';
+import { OrderService } from '../../core/services/order.service';
 
 @Component({
   selector: 'app-checkout',
@@ -48,6 +50,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   private snackbar = inject(SnackbarService);
   private router = inject(Router);
   private accountService = inject(AccountService);
+  private orderService = inject(OrderService);
   cartService = inject(CartService);
   addressElement?: StripeAddressElement;
   paymentElement?: StripePaymentElement;
@@ -135,12 +138,25 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         const result = await this.stripeService.confirmPayment(
           this.confirmationToken,
         );
+        if (result.paymentIntent?.status === 'succeeded') {
+          const order = await this.createOrderModel();
+          const orderResult = await firstValueFrom(
+            this.orderService.createOrder(order),
+          );
+
+          if (orderResult) {
+            this.orderService.orderComplete = true;
+            this.cartService.deleteCart();
+            this.cartService.selectedDelivery.set(null);
+            await this.router.navigateByUrl('/checkout/success');
+          } else {
+            throw new Error(
+              'Order creation failed, but payment was successful, please contact support.',
+            );
+          }
+        }
         if (result.error) {
           throw new Error(result.error.message);
-        } else {
-          this.cartService.deleteCart();
-          this.cartService.selectedDelivery.set(null);
-          await this.router.navigateByUrl('/checkout/success');
         }
       }
     } catch (error: any) {
@@ -151,12 +167,38 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async getAddressFromStripeAddress(): Promise<Address | null> {
+  private async createOrderModel(): Promise<OrderToCreate> {
+    const cart = this.cartService.cart();
+    const shippingAddress =
+      (await this.getAddressFromStripeAddress()) as ShippingAddress;
+    const card = this.confirmationToken?.payment_method_preview.card;
+    if (!cart?.id || !cart.deliveryMethodId || !shippingAddress || !card)
+      throw new Error("Can't create order");
+
+    const order: OrderToCreate = {
+      cartId: cart.id,
+      paymentSummary: {
+        last4: +card.last4,
+        brand: card.brand,
+        expMonth: card.exp_month,
+        expYear: card.exp_year,
+      },
+      deliveryMethodId: cart.deliveryMethodId,
+      shippingAddress,
+    };
+
+    return order;
+  }
+
+  private async getAddressFromStripeAddress(): Promise<
+    Address | ShippingAddress | null
+  > {
     const result = await this.addressElement?.getValue();
     const address = result?.value.address;
 
     if (address) {
       return {
+        name: result?.value.name || 'Guest',
         line1: address.line1,
         line2: address.line2 || undefined,
         city: address.city,
