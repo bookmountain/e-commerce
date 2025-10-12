@@ -1,17 +1,15 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AccountService } from '../../../services/account.service';
-import { Router } from '@angular/router';
-import { SnackbarService } from '../../../services/snackbar.service';
-import { MatCard } from '@angular/material/card';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
-import { MatError, MatInput } from '@angular/material/input';
 import { MatButton } from '@angular/material/button';
-import { JsonPipe } from '@angular/common';
-import { TextInputComponent } from '../../../../shared/components/text-input/text-input.component';
+import { MatCard } from '@angular/material/card';
+import { AccountService } from '../../../core/services/account.service';
+import { Router } from '@angular/router';
+import { SnackbarService } from '../../../core/services/snackbar.service';
+import { TextInputComponent } from '../../../shared/components/text-input/text-input.component';
 
 @Component({
   selector: 'app-register',
+  standalone: true,
   imports: [ReactiveFormsModule, MatCard, MatButton, TextInputComponent],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
@@ -33,8 +31,8 @@ export class RegisterComponent {
   onSubmit() {
     this.accountService.register(this.registerForm.value).subscribe({
       next: () => {
-        this.snack.success('Registration successful');
-        this.router.navigateByUrl('/login');
+        this.snack.success('Registration successful - you can now login');
+        this.router.navigateByUrl('/account/login');
       },
       error: (errors) => (this.validationErrors = errors),
     });
